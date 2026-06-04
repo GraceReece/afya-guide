@@ -1,6 +1,8 @@
 # AfyaGuide — First Aid Emergency Companion
 
-🔗 **Live Demo:** https://gracereece.github.io/afya-guide/
+🔗 **Live Demo-github pages:** https://gracereece.github.io/afya-guide/
+
+🔗 **Live Demo-Vercel:** https://afya-guide.vercel.app/
 
 ---
 
@@ -44,3 +46,9 @@ In many African contexts, emergency response is hindered by distance, traffic, a
 🤝 Harambee (Credits & Commitment)
 Built as a Capstone Project for the PLP Safari Scholarship.
 Commitment: As a builder, I commit to creating technology that uplifts the community, respects human dignity, and breaks barriers to essential information.
+
+
+## 👩🏾‍💻 Author
+
+**Grace Mueni**  
+[LinkedIn](https://www.linkedin.com/in/grace-mueni/) • [GitHub](https://github.com/GraceReece)
