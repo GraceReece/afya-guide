@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AfyaGuide — A first-aid emergency companion for low-end devices. Don't panic. Get clear steps fast.">
+  <title>AfyaGuide — First Aid Emergency Companion</title>
+
+  <!-- AfyaGuide brand favicon: emerald heart (#059669) for health-tech recognition -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23F9FAFB'/%3E%3Cpath fill='%23059669' d='M16 26s-8.5-5.4-8.5-11.2C7.5 11.1 9.8 9 12.4 9c1.5 0 2.9.8 3.6 2  .7-1.2 2.1-2 3.6-2 2.6 0 4.9 2.1 4.9 5.8C24.5 20.6 16 26 16 26z'/%3E%3C/svg%3E" type="image/svg+xml">
+
+  <!-- Public Sans: highly legible at large sizes (Grandmother-friendly typography) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Material Symbols Rounded: intuitive icons with clear shapes -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+
+  <!-- Tailwind CSS via CDN for rapid, consistent utility styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            surface: '#F9FAFB',
+            primary: '#059669',
+            emergency: '#DC2626',
+          },
+          fontFamily: {
+            sans: ['"Public Sans"', 'system-ui', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    /* Inclusive Design: smooth focus rings for keyboard and screen-reader users */
+    :focus-visible {
+      outline: 3px solid #059669;
+      outline-offset: 3px;
+    }
+    .material-symbols-rounded {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      user-select: none;
+    }
+    /* Respect reduced motion preferences (WCAG) */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+    /* Modal: fixed bottom sheet on mobile, centered on desktop — avoids viewport clip */
+    #emergency-modal {
+      margin: 0;
+      padding: 0;
+      border: none;
+      max-height: 100dvh;
+      max-height: 100svh;
+      width: 100%;
+      max-width: 48rem;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    #emergency-modal::backdrop {
+      background: rgba(17, 24, 39, 0.6);
+    }
+    #emergency-modal[open] {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      top: auto;
+    }
+    @media (min-width: 640px) {
+      #emergency-modal[open] {
+        left: 50%;
+        right: auto;
+        bottom: auto;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        max-height: min(90dvh, 720px);
+      }
+    }
+    /* flex-1 scroll region needs min-h-0 or steps clip above the fold */
+    #modal-steps-scroll {
+      min-height: 0;
+      -webkit-overflow-scrolling: touch;
+    }
+    /* Scrollable overlay: entire modal panel reachable on very small screens */
+    #modal-root.is-open {
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    @media (min-width: 640px) {
+      @keyframes slideUp {
+        from { transform: translate(-50%, calc(-50% + 24px)); opacity: 0; }
+        to { transform: translate(-50%, -50%); opacity: 1; }
+      }
+    }
+    .modal-enter {
+      animation: slideUp 0.35s ease-out forwards;
+    }
+    .modal-backdrop-enter {
+      animation: fadeIn 0.25s ease-out forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+
+<body class="min-h-screen bg-surface font-sans text-gray-900 antialiased">
+
+  <!-- Skip link: keyboard users jump straight to main content -->
+  <a href="#main-content"
+     class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-3 focus:text-white">
+    Skip to main content
+  </a>
+
+  <!-- Sticky header: language + search always reachable in high-stress moments -->
+  <header class="sticky top-0 z-40 border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur-sm"
+          role="banner">
+    <div class="mx-auto max-w-3xl px-4 py-3 sm:px-6">
+      <div class="flex min-h-[48px] items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-rounded text-3xl text-primary" aria-hidden="true">medical_services</span>
+          <h1 class="text-xl font-bold tracking-tight text-primary sm:text-2xl">AfyaGuide</h1>
+        </div>
+
+        <!-- Language Toggle: EN/SW with 48px min touch targets -->
+        <div class="flex shrink-0 rounded-2xl border border-gray-200 bg-gray-50 p-1"
+             role="group"
+             aria-label="Language selection">
+          <button type="button"
+                  id="lang-en"
+                  class="lang-btn min-h-[48px] min-w-[48px] rounded-xl px-4 text-base font-semibold transition-colors"
+                  data-lang="en"
+                  aria-pressed="true">
+            EN
+          </button>
+          <button type="button"
+                  id="lang-sw"
+                  class="lang-btn min-h-[48px] min-w-[48px] rounded-xl px-4 text-base font-semibold transition-colors"
+                  data-lang="sw"
+                  aria-pressed="false">
+            SW
+          </button>
+        </div>
+      </div>
+
+      <!-- Real-time search: filters cards as user types (stress-friendly discovery) -->
+      <label for="search-input" class="mt-3 block">
+        <span class="sr-only" id="search-label">Search emergencies</span>
+        <div class="relative">
+          <span class="material-symbols-rounded pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-2xl text-gray-500"
+                aria-hidden="true">search</span>
+          <input type="search"
+                 id="search-input"
+                 class="min-h-[48px] w-full rounded-2xl border border-gray-200 bg-gray-50 py-3 pl-14 pr-4 text-lg shadow-sm placeholder:text-gray-500 focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20"
+                 placeholder="Search emergencies..."
+                 autocomplete="off"
+                 aria-labelledby="search-label">
+        </div>
+      </label>
+    </div>
+  </header>
+
+  <main id="main-content" class="mx-auto max-w-3xl px-4 pb-12 pt-6 sm:px-6">
+
+    <!-- Hero: calming "Don't Panic" message reduces cognitive load -->
+    <section class="mb-8 rounded-2xl bg-white p-6 shadow-sm sm:p-8"
+             aria-labelledby="hero-heading">
+      <h2 id="hero-heading"
+          class="mb-2 text-3xl font-bold leading-tight text-gray-900 sm:text-4xl"
+          data-i18n="heroTitle">
+        Don't Panic
+      </h2>
+      <p class="text-lg leading-relaxed text-gray-700 sm:text-xl"
+         data-i18n="heroSubtitle">
+        Tap an emergency below. Follow the numbered steps. Help is one call away.
+      </p>
+    </section>
+
+    <!-- Emergency cards: 2-column grid, large tap targets, high contrast -->
+    <section aria-labelledby="cards-heading">
+      <h2 id="cards-heading" class="sr-only">Emergency first aid guides</h2>
+      <div id="cards-grid"
+           class="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5"
+           role="list">
+        <!-- Cards injected by JavaScript from offline hardcoded data -->
+      </div>
+      <p id="no-results"
+         class="hidden rounded-2xl bg-white p-8 text-center text-lg text-gray-600 shadow-sm"
+         role="status"
+         aria-live="polite">
+      </p>
+    </section>
+
+  </main>
+
+  <!-- Full-screen modal: scrollable steps + single prominent Close at bottom -->
+  <div id="modal-root"
+       class="pointer-events-none fixed inset-0 z-50 max-h-screen opacity-0"
+       aria-hidden="true">
+    <dialog id="emergency-modal"
+            class="modal-enter w-full rounded-t-2xl bg-white shadow-xl sm:rounded-2xl"
+            aria-labelledby="modal-title"
+            aria-describedby="modal-steps">
+      <!-- Sticky header: title stays visible while steps scroll -->
+      <div class="flex shrink-0 items-center gap-3 border-b border-gray-100 bg-white px-5 py-4">
+        <span id="modal-icon"
+              class="material-symbols-rounded flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-3xl text-primary"
+              aria-hidden="true"></span>
+        <h2 id="modal-title" class="min-w-0 flex-1 text-2xl font-bold text-gray-900 sm:text-3xl"></h2>
+      </div>
+
+      <div id="modal-steps-scroll" class="flex-1 overflow-y-auto overscroll-contain px-5 py-6">
+        <ol id="modal-steps"
+            class="space-y-4 text-lg leading-relaxed text-gray-800 sm:text-xl">
+        </ol>
+      </div>
+
+      <div class="shrink-0 space-y-3 border-t border-gray-100 bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+        <a id="emergency-call-btn"
+           href="tel:112"
+           class="flex min-h-[56px] w-full items-center justify-center gap-3 rounded-2xl bg-emergency px-6 text-xl font-bold text-white shadow-sm transition-opacity hover:opacity-95 active:scale-[0.99]">
+          <span class="material-symbols-rounded text-3xl" aria-hidden="true">call</span>
+          <span data-i18n="emergencyCall">Emergency Call</span>
+        </a>
+        <!-- Primary exit: one large Close below Emergency Call (Grandmother-friendly tap target) -->
+        <button type="button"
+                id="modal-close"
+                class="flex min-h-[56px] w-full items-center justify-center gap-3 rounded-2xl border-2 border-primary/30 bg-primary/5 px-6 text-xl font-bold text-primary shadow-sm transition-colors hover:bg-primary/10 active:scale-[0.99]">
+          <span class="material-symbols-rounded text-3xl" aria-hidden="true">close</span>
+          <span data-i18n="closeButton">Close</span>
+        </button>
+      </div>
+    </dialog>
+  </div>
+
+  <script>
+    /**
+     * AfyaGuide — Offline-first emergency companion
+     * Hardcoded data structure for zero network dependency on steps.
+     */
+
+    const EMERGENCIES = [
+      {
+        id: 'bleeding',
+        icon: 'bloodtype',
+        title: { en: 'Bleeding', sw: 'Kutokwa damu' },
+        steps: {
+          en: [
+            'Apply firm pressure.',
+            'Use a clean cloth.',
+            'Keep elevated.',
+          ],
+          sw: [
+            'Bonyeza kwa nguvu.',
+            'Tumia kitambaa kisafi.',
+            'Kaa ukiinua jeraha.',
+          ],
+        },
+      },
+      {
+        id: 'burns',
+        icon: 'local_fire_department',
+        title: { en: 'Burns', sw: 'Michubuko' },
+        steps: {
+          en: [
+            'Cool with running water for 20 mins.',
+            'Remove jewelry.',
+            'Cover loosely.',
+          ],
+          sw: [
+            'Poza kwa maji yanayotiririka kwa dakika 20.',
+            'Vua vito/mapambo.',
+            'Finika kwa urahisi.',
+          ],
+        },
+      },
+      {
+        id: 'choking',
+        icon: 'air',
+        title: { en: 'Choking', sw: 'Kukaba koo' },
+        steps: {
+          en: [
+            'Give 5 back blows.',
+            'Give 5 abdominal thrusts.',
+            'Repeat.',
+          ],
+          sw: [
+            'Piga dharuba 5 za mgongo.',
+            'Piga migandamizo 5 ya tumbo.',
+            'Rudia.',
+          ],
+        },
+      },
+      {
+        id: 'snake-bite',
+        icon: 'pest_control_rodent',
+        title: { en: 'Snake Bite', sw: 'Kuumwa na nyoka' },
+        steps: {
+          en: [
+            'Keep still and calm.',
+            'Remove rings/watches.',
+            "Wrap area firmly (don't cut!).",
+          ],
+          sw: [
+            'Tulia na ukae kimya.',
+            'Vua pete/saa.',
+            'Funga eneo hilo kwa nguvu (usikate!).',
+          ],
+        },
+      },
+      {
+        id: 'fainting',
+        icon: 'airline_seat_flat',
+        title: { en: 'Fainting', sw: 'Kuzimia' },
+        steps: {
+          en: [
+            'Lay them on their back.',
+            'Raise feet above heart.',
+            'Check breathing.',
+          ],
+          sw: [
+            'Alalaye kwa mgongo.',
+            'Inua miguu juu ya moyo.',
+            'Angalia upumuaji.',
+          ],
+        },
+      },
+      {
+        id: 'poisoning',
+        icon: 'warning',
+        title: { en: 'Poisoning', sw: 'Sumu' },
+        steps: {
+          en: [
+            'Identify substance.',
+            "Don't induce vomiting.",
+            'Call clinic immediately.',
+          ],
+          sw: [
+            'Tambua dutu/sumu.',
+            'Usitapishe.',
+            'Piga simu kliniki mara moja.',
+          ],
+        },
+      },
+    ];
+
+    const UI_STRINGS = {
+      en: {
+        heroTitle: "Don't Panic",
+        heroSubtitle: 'Tap an emergency below. Follow the numbered steps. Help is one call away.',
+        emergencyCall: 'Emergency Call',
+        searchPlaceholder: 'Search emergencies...',
+        noResults: 'No emergencies match your search.',
+        closeGuide: 'Close guide',
+        closeButton: 'Close',
+      },
+      sw: {
+        heroTitle: 'Usipanike',
+        heroSubtitle: 'Gusa dharura hapa chini. Fuata hatua zilizopangwa. Msaada uko simu moja tu.',
+        emergencyCall: 'Simu ya Dharura',
+        searchPlaceholder: 'Tafuta dharura...',
+        noResults: 'Hakuna dharura inayolingana na utafutaji wako.',
+        closeGuide: 'Funga mwongozo',
+        closeButton: 'Funga',
+      },
+    };
+
+    const STORAGE_KEY = 'afyaguide-lang';
+
+    let currentLang = 'en';
+    let searchQuery = '';
+    let activeEmergencyId = null;
+
+    const cardsGrid = document.getElementById('cards-grid');
+    const searchInput = document.getElementById('search-input');
+    const noResultsEl = document.getElementById('no-results');
+    const modalRoot = document.getElementById('modal-root');
+    const emergencyModal = document.getElementById('emergency-modal');
+    const modalStepsScroll = document.getElementById('modal-steps-scroll');
+    const modalTitle = document.getElementById('modal-title');
+    const modalIcon = document.getElementById('modal-icon');
+    const modalSteps = document.getElementById('modal-steps');
+    const modalCloseBtn = document.getElementById('modal-close');
+    const langEnBtn = document.getElementById('lang-en');
+    const langSwBtn = document.getElementById('lang-sw');
+
+    function getStoredLang() {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        return stored === 'sw' || stored === 'en' ? stored : 'en';
+      } catch {
+        return 'en';
+      }
+    }
+
+    function saveLang(lang) {
+      try {
+        localStorage.setItem(STORAGE_KEY, lang);
+      } catch {
+        /* Private browsing may block storage; app still works */
+      }
+    }
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      document.documentElement.lang = lang === 'sw' ? 'sw' : 'en';
+
+      langEnBtn.setAttribute('aria-pressed', lang === 'en' ? 'true' : 'false');
+      langSwBtn.setAttribute('aria-pressed', lang === 'sw' ? 'true' : 'false');
+
+      langEnBtn.classList.toggle('bg-primary', lang === 'en');
+      langEnBtn.classList.toggle('text-white', lang === 'en');
+      langEnBtn.classList.toggle('shadow-sm', lang === 'en');
+      langEnBtn.classList.toggle('text-gray-700', lang !== 'en');
+
+      langSwBtn.classList.toggle('bg-primary', lang === 'sw');
+      langSwBtn.classList.toggle('text-white', lang === 'sw');
+      langSwBtn.classList.toggle('shadow-sm', lang === 'sw');
+      langSwBtn.classList.toggle('text-gray-700', lang !== 'sw');
+
+      document.querySelectorAll('[data-i18n]').forEach((el) => {
+        const key = el.getAttribute('data-i18n');
+        if (UI_STRINGS[lang][key]) {
+          el.textContent = UI_STRINGS[lang][key];
+        }
+      });
+
+      searchInput.placeholder = UI_STRINGS[lang].searchPlaceholder;
+      const closeLabel = UI_STRINGS[lang].closeGuide;
+      modalCloseBtn.setAttribute('aria-label', closeLabel);
+
+      saveLang(lang);
+      renderCards();
+      if (activeEmergencyId) {
+        openModal(activeEmergencyId, false);
+      }
+    }
+
+    function getFilteredEmergencies() {
+      const q = searchQuery.trim().toLowerCase();
+      if (!q) return EMERGENCIES;
+
+      return EMERGENCIES.filter((item) => {
+        const titleEn = item.title.en.toLowerCase();
+        const titleSw = item.title.sw.toLowerCase();
+        const stepsEn = item.steps.en.join(' ').toLowerCase();
+        const stepsSw = item.steps.sw.join(' ').toLowerCase();
+        return (
+          titleEn.includes(q) ||
+          titleSw.includes(q) ||
+          stepsEn.includes(q) ||
+          stepsSw.includes(q) ||
+          item.id.includes(q)
+        );
+      });
+    }
+
+    function renderCards() {
+      const items = getFilteredEmergencies();
+      cardsGrid.innerHTML = '';
+
+      if (items.length === 0) {
+        noResultsEl.textContent = UI_STRINGS[currentLang].noResults;
+        noResultsEl.classList.remove('hidden');
+        return;
+      }
+
+      noResultsEl.classList.add('hidden');
+
+      items.forEach((item) => {
+        const title = item.title[currentLang];
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className =
+          'flex min-h-[120px] w-full flex-col items-start justify-center gap-3 rounded-2xl bg-white p-5 text-left shadow-sm transition-shadow hover:shadow-md focus:ring-2 focus:ring-primary/30 active:scale-[0.99] sm:min-h-[140px] sm:p-6';
+        card.setAttribute('role', 'listitem');
+        card.setAttribute('data-id', item.id);
+        card.setAttribute('aria-label', `${title} — ${currentLang === 'en' ? 'open first aid steps' : 'fungua hatua za huduma ya kwanza'}`);
+
+        card.innerHTML = `
+          <span class="material-symbols-rounded flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-4xl text-primary" aria-hidden="true">${item.icon}</span>
+          <span class="text-xl font-bold text-gray-900 sm:text-2xl">${title}</span>
+        `;
+
+        card.addEventListener('click', () => openModal(item.id));
+        cardsGrid.appendChild(card);
+      });
+    }
+
+    function openModal(emergencyId, animate = true) {
+      const item = EMERGENCIES.find((e) => e.id === emergencyId);
+      if (!item) return;
+
+      activeEmergencyId = emergencyId;
+      const title = item.title[currentLang];
+      const steps = item.steps[currentLang];
+
+      modalTitle.textContent = title;
+      modalIcon.textContent = item.icon;
+      modalSteps.innerHTML = steps
+        .map(
+          (step, i) => `
+          <li class="flex gap-4 rounded-2xl bg-gray-50 p-4 shadow-sm">
+            <span class="flex h-12 min-w-[48px] items-center justify-center rounded-xl bg-primary text-xl font-bold text-white" aria-hidden="true">${i + 1}</span>
+            <span class="flex-1 pt-2">${step}</span>
+          </li>
+        `
+        )
+        .join('');
+
+      modalRoot.classList.remove('pointer-events-none', 'opacity-0');
+      modalRoot.classList.add('is-open');
+      modalRoot.setAttribute('aria-hidden', 'false');
+      if (animate) {
+        emergencyModal.classList.add('modal-enter');
+      }
+
+      emergencyModal.showModal();
+      document.body.style.overflow = 'hidden';
+      modalRoot.scrollTop = 0;
+      if (modalStepsScroll) modalStepsScroll.scrollTop = 0;
+      modalCloseBtn.focus();
+    }
+
+    function closeModal() {
+      activeEmergencyId = null;
+      emergencyModal.close();
+      modalRoot.classList.add('pointer-events-none', 'opacity-0');
+      modalRoot.classList.remove('is-open');
+      modalRoot.setAttribute('aria-hidden', 'true');
+      emergencyModal.classList.remove('modal-enter');
+      document.body.style.overflow = '';
+    }
+
+    langEnBtn.addEventListener('click', () => setLanguage('en'));
+    langSwBtn.addEventListener('click', () => setLanguage('sw'));
+
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      renderCards();
+    });
+
+    modalCloseBtn.addEventListener('click', closeModal);
+    emergencyModal.addEventListener('click', (e) => {
+      if (e.target === emergencyModal) closeModal();
+    });
+
+    emergencyModal.addEventListener('cancel', (e) => {
+      e.preventDefault();
+      closeModal();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && activeEmergencyId) {
+        closeModal();
+      }
+    });
+
+    currentLang = getStoredLang();
+    setLanguage(currentLang);
+  </script>
+</body>
+</html>
