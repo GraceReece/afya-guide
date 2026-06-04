@@ -1,6 +1,6 @@
 # AfyaGuide — First Aid Emergency Companion
 
-**Live Demo:** [Insert your Vercel Link here]
+**Live Demo:** https://gracereece.github.io/afya-guide/
 
 ## 🌍 The Mission
 AfyaGuide is a mobile-first, offline-ready web application designed to bridge the "Golden Hour" gap in African emergency healthcare. It provides instant, icon-driven first-aid instructions to bystanders and family members before professional medical help arrives.
